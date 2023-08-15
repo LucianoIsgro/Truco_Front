@@ -1,24 +1,37 @@
-import logo from './logo.svg';
+
 import './App.css';
+import { BrowserRouter,Routes,Route, useNavigate } from 'react-router-dom';
+
+
+
+
+import Home from "./components/Home"
+import Dashboard from './components/Dashboard';
+import CreateGame from './components/CreateGame';
+import Game from './components/Game';
+import Board from './components/Board';
+import Header from './components/Header';
+import { GetCurrentPlayer } from './api/games';
+
 
 function App() {
+
+ 
+  
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <>
+    <BrowserRouter>
+    <Header></Header>
+    <Routes>
+    
+    <Route path={"/"} Component={Home} />
+    <Route path={"/dashboard/*"} Component={Dashboard}/>
+    <Route path={"games/:id"} Component={Game}/>
+    <Route path={"games/:id/board"} Component={Board}/>
+    
+    </Routes>
+    </BrowserRouter>
+    </>
   );
 }
 

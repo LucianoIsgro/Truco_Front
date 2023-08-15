@@ -1,0 +1,103 @@
+.board {
+    position: absolute;
+    display: block;
+    border: 5px solid black ;
+    background: rgb(92, 198, 234);
+    border-radius: 50%;
+    width: 650px;
+    height: 400px;
+    margin: 0 auto;
+    /*transform:  rotateX(60deg) translate3d(0px, 0px, -50px);
+    box-shadow: 5px 8px 8px black;*/
+
+    top: 23%;
+    left: 0;
+    right: 0;
+
+ 
+    
+
+}
+
+
+.Player{
+    text-align: center;
+    color: aliceblue;
+    display:block;
+    background: blue;
+    margin: 10px auto;
+    width: 25%;
+    
+    
+
+}
+.otro0{
+    position: absolute;
+    bottom: 0;
+    margin: 0 auto;
+    left: 0;
+    right: 0;
+    
+}
+
+#my_cards{
+    display: flex;
+    justify-content: center;
+    border: 4px solid black;
+    height: 50%;
+    border-collapse: collapse ;
+    margin: 0 auto;
+    font-size: medium;
+    gap: 10px;
+    padding: 10px;
+    
+}
+#board_cards{
+    display: none;
+}
+
+#board_cards{
+    display: flex;
+    justify-content: center;
+ 
+    height: 5%;
+    border-collapse: collapse ;
+    margin: 0 auto;
+    font-size: smaller;
+    gap: 10px;
+    padding: 5px;
+    
+}
+
+.BoardPlayer{
+    text-align: center;
+    color: aliceblue;
+    display:flex;
+    margin: 10px auto;
+    width: 50%;
+}
+.otroBoardPlayer0{
+    position: absolute;
+    bottom:  0;
+    margin: 0 auto;
+    left: 0;
+    right: 0;
+
+
+}
+
+.contador{
+    position: absolute;
+    display:grid;
+   
+   
+    width: 10px;
+    height: 20px;
+    margin-right: 0;
+    margin-top: 0;
+    right: 0;
+    top: 0;
+   
+
+
+}
