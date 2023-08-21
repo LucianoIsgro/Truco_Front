@@ -4,6 +4,7 @@ import "./Dashboard.css"
 
 import Board from "./Board";
 import { Route, Routes, useNavigate } from "react-router";
+import Header from "./Header";
 
 function Dashboard(){
     const navigate =useNavigate()
@@ -14,7 +15,7 @@ function Dashboard(){
 
     return(
         <>
-  
+    <Header></Header>
      <div className="DashBoard">
          <h1>Dashboard</h1>
 
