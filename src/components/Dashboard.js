@@ -5,7 +5,7 @@ import "./Dashboard.css"
 import Board from "./Board";
 import Header from "./Header";
 import { Route, Routes, useNavigate } from "react-router";
-import Header from "./Header";
+
 
 function Dashboard({current_player}){
     const navigate =useNavigate()
