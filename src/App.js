@@ -12,22 +12,42 @@ import Game from './components/Game';
 import Board from './components/Board';
 import Header from './components/Header';
 import { GetCurrentPlayer } from './api/games';
-
-
+import {useState,useEffect} from "react";
 function App() {
 
- 
-  
+ const [current_player, setCurrent_player] = useState(null);
+    
+  useEffect(()=>{
+     
+     !current_player && current();
+      
+    },[current_player])
+
+ console.log(current_player);
+ const current= async ()=>{
+    const res = await GetCurrentPlayer()
+	 //if(res.error){
+        //console.log("NO");
+        //return;
+	 //}
+	 if(res==null){
+	return;
+	 }else{
+     setCurrent_player(res);
+	 }
+
+ }
   return (
     <>
     <BrowserRouter>
     
-    <Routes>
     
-    <Route path={"/"} Component={Home} />
-    <Route path={"/dashboard/*"} Component={Dashboard}/>
-    <Route path={"games/:id"} Component={Game}/>
-    <Route path={"games/:id/board"} Component={Board}/>
+    <Routes>
+
+    <Route path={"/"} element={<Home current_player={current_player} />}/>
+    <Route path={"/dashboard/*"} element={<Dashboard current_player={current_player}/>}/>
+    <Route path={"games/:id"} element={<Game current_player={current_player} current={current} />}/>
+    <Route path={"games/:id/board"} element={<Board current_player={current_player} current={current}/>}/>
     
     </Routes>
     </BrowserRouter>

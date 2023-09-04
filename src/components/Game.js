@@ -8,7 +8,7 @@ import {StartGame} from "../api/games";
 
 import "./Game.css"
 
-function Game(){
+function Game({current_player,current}){
 
     const navigate = useNavigate();
     const location = useLocation()
@@ -19,19 +19,12 @@ function Game(){
     const [game,setGame] = useState(null);
     const [players,setPlayers] = useState([])
 
-    const [current_player, setCurrent_player] = useState(null);
-
-   
-
-
-
     let interv;
-
 
     useEffect(()=>{
         !game && show_game(id);
-        current()
-        startWaiting()
+        //!current_player && current();
+         startWaiting();
         return () => {
             clearIntervals()
         }
@@ -117,16 +110,7 @@ function Game(){
    
   
 
-   const current= async ()=>{
-    const res = await GetCurrentPlayer()
-    if(res.error){
-        console.log("NO");
-        return;
-    }
-      setCurrent_player(res);
      
-    }
-   
    
     //console.log(current_player)
 

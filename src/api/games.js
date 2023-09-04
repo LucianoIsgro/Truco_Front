@@ -2,7 +2,7 @@ import axios from "axios";
 
 export async function Logout() {
   try {
-    const req = await axios.destroy("http://localhost:3001/logout", {
+    const req = await axios.delete("http://localhost:3001/logout", {
       headers: {
         Accept: "*/*",
       },

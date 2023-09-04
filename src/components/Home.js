@@ -8,16 +8,16 @@ import SignUp from "./auth/Signup";
 import Board from "./Board";
 import { Logout } from '../api/games';
 
-function Home(current) {
+function Home({current_player,current}) {
    
-    console.log(current)
+    //console.log(current_player)
     return (
     <>
         
       <div className="home">
         <h1>Home</h1>
         <div className="login">
-            <LogIn />
+            <LogIn current_player={current_player} current={current} />
         </div>
         <br />
         <div className="signup">

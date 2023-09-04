@@ -10,7 +10,7 @@ import {
   DeleteCard,
 } from "../api/games";
 
-function Board() {
+function Board({current_player,current}) {
   const location = useLocation();
 
   //console.log(location.state.game);
@@ -23,14 +23,27 @@ function Board() {
   const [count1, setCount1] = useState(0);
   const [count2, setCount2] = useState(0);
 
-  useEffect(() => {
-    // !game && show_game(id);
-    show_players(id);
-    
-    //cards.length===0 && show_cards()
-  }, [cards]);
+  let interv;
 
-  console.log(cards);
+
+
+  useEffect(() => {
+    
+   
+    //!game && show_game(id);
+   
+    show_players(id);
+   
+    //cards.length===0 && show_cards()
+     !current_player && startWaiting()
+    return () => {
+      clearIntervals()
+    }
+        
+
+  }, [current_player]);
+
+  //console.log(current_player);
 
   const sumarc1=()=>{
     setCount1(count1+1)
@@ -48,9 +61,6 @@ function Board() {
     setCount2(count2-1)
   }
 
-
-
-
   const show_players = async (id) => {
     const res = await getGamePlayers(id);
     if (res.error) {
@@ -61,9 +71,9 @@ function Board() {
   };
 
   function handleBoton(i, player_number, player_id) {
-    if (cards[player_number].length !== 3) {
+    if (cards[player_number].length <= 3) {
       darCarta(i, player_number, player_id);
-    } else {
+    } else {  
       alert("Ya tiene las 3 cartas");
     }
   }
@@ -90,11 +100,12 @@ function Board() {
   const show_cards = async (player_id) => {
     const res = await GetPlayerCards(player_id);
 
-    if (res.error) {
-      console.log("NO");
-      return;
-    }
-    console.log(res);
+    // if (res.error) {
+    //   console.log("NO");
+    //   return;
+    // }
+    
+    
   };
 
   const startDrag = (event, item) => {
@@ -127,6 +138,23 @@ function Board() {
     }
     console.log("Se elimino la carta");
   };
+
+
+
+  function startWaiting(){
+    
+    clearIntervals()
+    const tmp = setInterval(
+      ()=> show_cards(current_player?.id),
+      2000
+    )
+    interv = tmp
+}
+
+function clearIntervals(){
+clearInterval(interv)
+interv=undefined
+}
 
   return (
     <>

@@ -5,7 +5,7 @@ import {  useNavigate } from "react-router-dom";
 
 
 
-function LogIn(){
+function LogIn({current_player, current}){
   const [player,setPlayer]=useState({
       
     username: "",
@@ -32,13 +32,11 @@ const login = (event) =>{
   
   }
   ).then(response => {
-    console.log("Login res", response);
+    console.log("Login res", response);	
     navigate('/dashboard');
   }).catch(error =>{
     console.log("Login error",error);
   }) 
-
-
 
   event.preventDefault();
 }

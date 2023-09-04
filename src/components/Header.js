@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router";
 import { Logout } from "../api/games";
-function Header() {
+function Header({setCurrent_player}) {
   const navigate = useNavigate();
 
   const logout = () => {
@@ -10,7 +10,8 @@ function Header() {
       console.log("NO");
       return;
     }
-
+    console.log("Logout exitoso")
+    //setCurrent_player(null);
     navigate("/");
   };
 
