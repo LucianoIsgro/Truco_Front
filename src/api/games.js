@@ -98,12 +98,31 @@ export async function DeletePlayerGame(id) {
   }
 }
 
-
+export async function DropCard(card_id,player_id,order) {
+  try {
+    const req = await axios.put(
+      "http://localhost:3001/cards/"+ card_id +"/drop" ,
+      {
+        dropped: true,
+        order: order
+      },
+      {
+        headers: {
+          Accept: "*/*",
+        },
+        withCredentials: true,
+      }
+    );
+    return req.data;
+  } catch (e) {
+    console.log("e ", e);
+  }
+}
 
 export async function DealCards(game_id, player_id) {
   try {
     const req = await axios.post(
-      "http://localhost:3001/games/" + game_id + "/player_cards/" + player_id,
+      "http://localhost:3001/games/"+game_id+"/player_cards/"+player_id,
       {},
       {
         headers: {
@@ -135,10 +154,12 @@ export async function DeleteCard(id) {
   }
 }
 
+
+
 export async function GetPlayerCards(id) {
   try {
     const req = await axios.get(
-      "http://localhost:3001/players/" + id + "/cards",
+      "http://localhost:3001/players/"+id+"/player_cards",
       {
         headers: {
           Accept: "*/*",
@@ -151,6 +172,26 @@ export async function GetPlayerCards(id) {
     console.log("e ", e);
   }
 }
+
+export async function GetDroppedCards(id) {
+  try {
+    const req = await axios.get(
+      "http://localhost:3001/players/" + id + "/dropped_player_cards",
+      {
+        headers: {
+          Accept: "*/*",
+        },
+        withCredentials: true,
+      }
+    );
+    return req.data;
+  } catch (e) {
+    console.log("e ", e);
+  }
+}
+
+
+
 export async function GetOnePlayerCard(id) {
   try {
     const req = await axios.get("http://localhost:3001/player_cards/" + id, {

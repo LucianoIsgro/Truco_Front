@@ -4,15 +4,12 @@ import axios from "axios";
 import {DeleteGame, GetCurrentPlayer, getGame} from "../api/games";
 import {getGamePlayers,DeletePlayerGame} from "../api/games";
 import {StartGame} from "../api/games";
-
-
 import "./Game.css"
 
 function Game({current_player,current}){
-
     const navigate = useNavigate();
     const location = useLocation()
-    
+
     const {id} = useParams();
    
     //console.log( location.state.game);
@@ -20,17 +17,26 @@ function Game({current_player,current}){
     const [players,setPlayers] = useState([])
 
     let interv;
-
+    let interv2;
+    let interv3;
     useEffect(()=>{
         !game && show_game(id);
-        //!current_player && current();
-         startWaiting();
+        !current_player && current();
+        
+        startWaiting();
+        
+        startWaiting2();
+
+        startWaiting3();
+        
         return () => {
             clearIntervals()
+            clearIntervals2()
+            clearIntervals3()
         }
-        
+ 
         //show_players(id);
-    },[players])
+    },[players,current_player,game])
 
 //hacer la validacion no es necesario, solo conviene cuando escala mucho
 
@@ -62,7 +68,6 @@ function Game({current_player,current}){
         }
         console.log("empezo");
         
-
         navigate("/games/"+id+"/board",{state:{game: game}});
 
     }
@@ -89,6 +94,12 @@ function Game({current_player,current}){
         console.log("Me fui");
         navigate("/dashboard")
     }
+    function GoToBoard(){
+        setGame(game)
+        if (game?.estado === "en_curso"){
+            navigate("/games/"+id+"/board")
+        }
+    }
 
 
 
@@ -102,16 +113,39 @@ function Game({current_player,current}){
         )
         interv= tmp
     }
+    function startWaiting2(){
+        clearIntervals2()
+        const tmp = setInterval(
+            ()=> GoToBoard(),
+             1000
+        )
+        interv2= tmp
+    }
+    function startWaiting3(){
+        clearIntervals3()
+        const tmp = setInterval(
+            ()=> show_game(id),
+             1000
+        )
+        interv3= tmp
+    }
+
 
    function clearIntervals(){
     clearInterval(interv)
     interv=undefined
    }
-   
-  
 
-     
-   
+   function clearIntervals2(){
+    clearInterval(interv2)
+    interv2=undefined
+   }
+   function clearIntervals3(){
+    clearInterval(interv3)
+    interv3=undefined
+   }
+
+
     //console.log(current_player)
 
 
@@ -136,7 +170,7 @@ function Game({current_player,current}){
         }
         
         {
-            current_player?.id == game?.player_id ? 
+            current_player?.id === game?.player_id ? 
             <>
             <button onClick={handleBoton}>Empezar Juego</button>
             <button onClick={deleteGame}>Cancelar Juego</button>

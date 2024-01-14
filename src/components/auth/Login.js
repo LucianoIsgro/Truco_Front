@@ -33,6 +33,7 @@ const login = (event) =>{
   }
   ).then(response => {
     console.log("Login res", response);	
+    current();
     navigate('/dashboard');
   }).catch(error =>{
     console.log("Login error",error);
