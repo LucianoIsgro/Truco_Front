@@ -28,15 +28,16 @@
     margin: 10px auto;
     width: 25%;
     
-    
-
-}
-.otro0{
     position: absolute;
     bottom: 0;
     margin: 0 auto;
     left: 0;
     right: 0;
+    
+
+}
+.otro0{
+   
     
 }
 
@@ -82,7 +83,6 @@
     margin: 0 auto;
     left: 0;
     right: 0;
-
 
 }
 

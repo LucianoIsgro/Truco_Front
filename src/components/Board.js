@@ -17,18 +17,20 @@ function Board({current_player,current}) {
   const location = useLocation();
 
   const storedCards = localStorage.getItem('cards')
-  const initialCards= storedCards? JSON.parse(storedCards) : [[],[]]
+  const initialCards= storedCards? JSON.parse(storedCards) : ([[],[]])
 
 
 
-  //console.log(location.state.game);
+  //console.log(location.state.game.id);
+  
 
   const { id } = useParams();
+  
   const [players, setPlayers] = useState([]);
 
   const [cards, setCards] = useState(initialCards);
-  const PlayerCards = cards.slice();
-  const c1 = PlayerCards.slice();
+  const PlayerCards = cards?.slice();
+  const c1 = PlayerCards?.slice();
   
   const [cards2, setCards2] = useState([[],[]]);
   const PlayerCards2 = cards2?.slice();
@@ -40,28 +42,36 @@ function Board({current_player,current}) {
 
   const [count1, setCount1] = useState(0);
   const [count2, setCount2] = useState(0);
+  
+  const [playerIndex,setPlayerIndex] = useState(0)
+  
 
   let interv;
 
-
+  //let playerIndex = players?.length !== 0 ? players?.findIndex((element) => element?.id === current_player?.id) : (0)
 
   useEffect(() => {
+    
     //!game && show_game(id);
+    //players.length===0 && 
+
     show_players(id);
+    
     //!current_player && current()
     //cards.length===0 && show_cards()
     //localStorage.setItem('cards', JSON.stringify(cards));
-    
-    startWaiting();
-     return () => {
-       clearIntervals()
-     }
+    startWaiting(); 
+    return () => {
+       clearIntervals();
+     };
         
-  },[current_player]);
+  },[]);
 
-  //console.log(current_player);
-  //console.log(players)
-  console.log(cards)
+  
+
+  console.log(current_player);
+  console.log(players);
+  console.log(cards);
   //console.log(cards2)
 
   const sumarc1=()=>{
@@ -84,15 +94,18 @@ function Board({current_player,current}) {
 
   const show_players = async (id) => {
     const res = await getGamePlayers(id);
-    if (res.error) {
+    if (res?.error) {
       console.log("NO");
       return;
     }
+    console.log("llego");
     setPlayers(res);
+    setPlayerIndex(res?.findIndex((element) => element?.id === current_player?.id));
+    console.log(res?.findIndex((element) => element?.id === current_player?.id))
   };
 
   function handleBoton(i, player_number, player_id) {
-    if (cards[player_number].length <= 3) {
+    if (cards[playerIndex].length <= 3) {
       darCarta(i, player_number, player_id);
     } else {  
       alert("Ya tiene las 3 cartas");
@@ -111,7 +124,7 @@ function Board({current_player,current}) {
 
     c1[i] = res;
 
-    PlayerCards[player_number]?.push(c1[i]);
+    PlayerCards[playerIndex]?.push(res);
 
     setCards(PlayerCards);
     //console.log(cards);
@@ -129,18 +142,13 @@ function Board({current_player,current}) {
 
     
     
-    PlayerCards[0] = res;
+    PlayerCards[playerIndex] = res;
     setCards(PlayerCards);
 
-    PlayerCards2[0]= res2;
+    PlayerCards2[playerIndex]= res2;
     setCards2(PlayerCards2);
 
-    PlayerCards[1] = res;
-    setCards(PlayerCards);
-
-    PlayerCards2[1]= res2;
-    setCards2(PlayerCards2);
-   
+    
 
     // PlayerCards2[0]=res2;
     // setCards2(PlayerCards2);
@@ -233,90 +241,72 @@ function reset(){
   
 }
 
+if(players?.length===0){
+  return (
+    <div> Loading </div>
+
+
+  )
+}
 
   return (
     <>
-      {players?.map((player) => (
+      {//players?.map((player) => ())
+      }
+        
         <div
-          key={player?.id}
-          className={"Player " + "otro" + players?.indexOf(player)}
-        >
-          {player?.username}
-          {player?.id === current_player?.id ? 
+          key={current_player?.id}
+          className={"Player " }//+ "otro" + players?.indexOf(player)
+         >
+          {current_player?.username}
+    
           <> 
-          <table id="my_cards"
-         
-          >
+          <table id="my_cards">
             <Card
-              card={cards[players?.indexOf(player)][0]}
+              card={cards[playerIndex][0]}
               
               onCardClick={() =>
-                handleBoton(0, players?.indexOf(player), player?.id)
+                handleBoton(0,  playerIndex , current_player?.id)
               }
               onDragStart={(event) =>
-                startDrag(event, cards[players?.indexOf(player)][0])
+                startDrag(event, cards[playerIndex][0])
               }
               
             ></Card>
 
             <Card
               
-              card={cards[players?.indexOf(player)][1]}
+              card={cards[playerIndex][1]}
               
               onCardClick={() =>
-                handleBoton(1, players?.indexOf(player), player?.id)
+                handleBoton(1, playerIndex , current_player?.id)
               }
               onDragStart={(event) =>
-                startDrag(event, cards[players?.indexOf(player)][1])
+                startDrag(event, cards[playerIndex][1])
                 
               }
 
             />
 
             <Card
-              card ={cards[players?.indexOf(player)][2]}
+              card ={cards[playerIndex][2]}
               onCardClick={() =>
-                handleBoton(2, players?.indexOf(player), player?.id)
+                handleBoton(2, playerIndex , current_player?.id)
               }
               onDragStart={(event) =>
-                startDrag(event, cards[players?.indexOf(player)][2])
+                startDrag(event, cards[playerIndex][2])
               }
-
-  
             />
           </table>
           
           </> 
-          : 
-          <>
           
-          <table id="my_cards">
-           <Card
-            onCardClick={() =>
-              handleBoton(0, players?.indexOf(player), player?.id)
-            }
-           />
-           <Card
-           onCardClick={() =>
-            handleBoton(1, players?.indexOf(player), player?.id)
-          }
-           />
-           <Card
-           onCardClick={() =>
-            handleBoton(2, players?.indexOf(player), player?.id)
-          }
-
-           />
-
-          </table>
           
-          </>  
           
-          }
 
           
         </div>
-      ))}
+      
 
       <div className="board">
         {players?.map((player) => (

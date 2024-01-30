@@ -8,7 +8,7 @@ import SignUp from "./auth/Signup";
 import Board from "./Board";
 import { Logout } from '../api/games';
 
-function Home({current_player,current}) {
+function Home({current_player,current, setCurrent_player}) {
    
     //console.log(current_player)
     return (
@@ -17,7 +17,7 @@ function Home({current_player,current}) {
       <div className="home">
         <h1>Home</h1>
         <div className="login">
-            <LogIn current_player={current_player} current={current} />
+            <LogIn current_player={current_player} current={current} setCurrent_player={setCurrent_player} />
         </div>
         <br />
         <div className="signup">

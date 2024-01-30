@@ -7,7 +7,7 @@ import Header from "./Header";
 import { Route, Routes, useNavigate } from "react-router";
 
 
-function Dashboard({current_player}){
+function Dashboard({current_player,setCurrent_player}){
     const navigate =useNavigate()
     const navigateToCreate=()=>{
         navigate("./create_game")
@@ -16,7 +16,7 @@ function Dashboard({current_player}){
 //console.log(current_player);
     return(
         <>
-     <Header/> 
+     <Header current_player={current_player} setCurrent_player={setCurrent_player}/> 
      <div className="DashBoard">
          <h1>Dashboard</h1>
 

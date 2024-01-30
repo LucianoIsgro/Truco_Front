@@ -5,7 +5,10 @@ import {  useNavigate } from "react-router-dom";
 
 
 
-function LogIn({current_player, current}){
+function LogIn({current_player, current, setCurrent_player}){
+  
+  const navigate = useNavigate();
+  
   const [player,setPlayer]=useState({
       
     username: "",
@@ -14,7 +17,6 @@ function LogIn({current_player, current}){
     
 })
 
-const navigate = useNavigate();
 
 const login = (event) =>{
   axios.post("http://localhost:3001/logins",
@@ -32,8 +34,10 @@ const login = (event) =>{
   
   }
   ).then(response => {
-    console.log("Login res", response);	
-    current();
+   	
+    console.log("Login res", response);
+    sessionStorage.setItem('current_player', JSON.stringify(response.data))
+    setCurrent_player(response.data)
     navigate('/dashboard');
   }).catch(error =>{
     console.log("Login error",error);

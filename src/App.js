@@ -16,13 +16,17 @@ import {useState,useEffect} from "react";
 import LogIn from './components/auth/Login';
 function App() {
 
- const [current_player, setCurrent_player] = useState(null);
+  const me = sessionStorage.getItem('current_player')
+  const initialMe = me? JSON.parse(me) : (null)
+
+ const [current_player, setCurrent_player] = useState(initialMe);
     
   useEffect(()=>{
-      !current_player && current();
+      //!current_player && current();
      
-    },[current_player,LogIn,Logout])
+    },[current_player,LogIn,Logout]) 
 
+    console.log(current_player)
 
  const current= async ()=>{
     const res = await GetCurrentPlayer()
@@ -45,8 +49,8 @@ function App() {
     
     <Routes>
 
-    <Route path={"/"} element={<Home current_player={current_player} current={current} />}/>
-    <Route path={"/dashboard/*"} element={<Dashboard current_player={current_player}/>}/>
+    <Route path={"/"} element={<Home current_player={current_player} current={current} setCurrent_player={setCurrent_player} />}/>
+    <Route path={"/dashboard/*"} element={<Dashboard current_player={current_player} setCurrent_player={setCurrent_player} />}/>
     <Route path={"games/:id"} element={<Game current_player={current_player} current={current} />}/>
     <Route path={"games/:id/board"} element={<Board current_player={current_player} current={current}/>}/>
     

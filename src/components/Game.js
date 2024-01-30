@@ -21,7 +21,7 @@ function Game({current_player,current}){
     let interv3;
     useEffect(()=>{
         !game && show_game(id);
-        !current_player && current();
+        //!current_player && current();
         
         startWaiting();
         
@@ -36,7 +36,7 @@ function Game({current_player,current}){
         }
  
         //show_players(id);
-    },[players,current_player,game])
+    },[players,game])
 
 //hacer la validacion no es necesario, solo conviene cuando escala mucho
 
@@ -68,7 +68,7 @@ function Game({current_player,current}){
         }
         console.log("empezo");
         
-        navigate("/games/"+id+"/board",{state:{game: game}});
+        navigate("/games/"+id+"/board",{state: {game: game}});
 
     }
 
