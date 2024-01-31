@@ -37,13 +37,13 @@ function Board({current_player,current}) {
   const c2 = PlayerCards2?.slice();
 
  
-  const [dropOrder, setDropOrder] = useState(1)
-  const [dropOrder2, setDropOrder2] = useState(1)
+  const [dropOrder, setDropOrder] = useState(1);
+  const [dropOrder2, setDropOrder2] = useState(1);
 
   const [count1, setCount1] = useState(0);
   const [count2, setCount2] = useState(0);
   
-  const [playerIndex,setPlayerIndex] = useState(0)
+  const [playerIndex,setPlayerIndex] = useState(0);
   
 
   let interv;
@@ -72,25 +72,20 @@ function Board({current_player,current}) {
   console.log(current_player);
   console.log(players);
   console.log(cards);
-  //console.log(cards2)
+  console.log(cards2)
 
   const sumarc1=()=>{
     setCount1(count1+1)
-
-  }
+  };
   const sumarc2=()=>{
     setCount2(count2+1)
-
-  }
+  };
   const restarc1=()=>{
     setCount1(count1-1)
-
-  }
+  };
   const restarc2=()=>{
     setCount2(count2-1)
-  }
-
-
+  };
 
   const show_players = async (id) => {
     const res = await getGamePlayers(id);
@@ -194,7 +189,7 @@ function Board({current_player,current}) {
       order = dropOrder
     }
 
-    if(player_number===1){
+    if(player_number === 1){
       setDropOrder2(dropOrder2+1)
       order = dropOrder2
     }
@@ -202,7 +197,7 @@ function Board({current_player,current}) {
     c2[i] = card; 
     PlayerCards2[player_number]?.push(card);
     
-    setCards2(PlayerCards2);
+    setCards2(PlayerCards2[player_number]);
     
     DropCard(card?.id,player_id,order);
     
@@ -252,7 +247,7 @@ if(players?.length===0){
   return (
     <>
       {//players?.map((player) => ())
-      }
+       }
         
         <div
           key={current_player?.id}
@@ -263,38 +258,38 @@ if(players?.length===0){
           <> 
           <table id="my_cards">
             <Card
-              card={cards[playerIndex][0]}
+              card={cards[0]}
               
               onCardClick={() =>
                 handleBoton(0,  playerIndex , current_player?.id)
               }
               onDragStart={(event) =>
-                startDrag(event, cards[playerIndex][0])
+                startDrag(event, cards[0])
               }
               
             ></Card>
 
             <Card
               
-              card={cards[playerIndex][1]}
+              card={cards[1]}
               
               onCardClick={() =>
                 handleBoton(1, playerIndex , current_player?.id)
               }
               onDragStart={(event) =>
-                startDrag(event, cards[playerIndex][1])
+                startDrag(event, cards[1])
                 
               }
 
             />
 
             <Card
-              card ={cards[playerIndex][2]}
+              card ={cards[2]}
               onCardClick={() =>
                 handleBoton(2, playerIndex , current_player?.id)
               }
               onDragStart={(event) =>
-                startDrag(event, cards[playerIndex][2])
+                startDrag(event, cards[2])
               }
             />
           </table>
