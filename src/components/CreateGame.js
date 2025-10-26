@@ -1,55 +1,58 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import JoinGame from "./JoinGame";
-//import {useNavigate} from "react-router";
-import {useNavigate, redirect} from 'react-router-dom';
+import React, { useState } from 'react';
+import axios from 'axios';
+import JoinGame from './JoinGame';
+import { useNavigate } from 'react-router-dom';
+import { joinGame } from '../api/games';
 
-function CreateGame(){
+function CreateGame() {
+  const navigate = useNavigate();
 
+  const [game, setGame] = useState({
+    nombre: '',
+    token: '',
+  });
 
-  const navigate = useNavigate()
-  const history = useNavigate()
+  const handleChange = (field) => (event) => {
+    setGame((prevGame) => ({
+      ...prevGame,
+      [field]: event.target.value,
+    }));
+  };
 
-  
-    
-    const [game,setGame]=useState({
-        nombre: "",
-        token: "",
-      
-    })
-
-    const create_game = (event) => {
-        
-        axios.post("http://localhost:3001/games",{
-    
-            nombre: game.nombre,
-            token: game.token,
-          
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    try {
+      const response = await axios.post(
+        'http://localhost:3001/games',
+        {
+          nombre: game.nombre,
+          token: game.token,
         },
         {
           headers: {
-            Accept: "*/*"
+            Accept: '*/*',
           },
-          withCredentials: true
-        }
-            
-        ).then(response => {
-            console.log("Create Game", response);
-            alert("El juego se creo ahora ingrese con la id")
-           //navigate("/games/"+response.data.id , {state:{game: game}})
-            //history(`/games/${response.data.id}`)
-          }).catch(error =>{
-            console.log("Create Game",error);
-          }) 
-        event.preventDefault();
+          withCredentials: true,
+        },
+      );
+
+      const newGameId = response?.data?.id;
+      alert('El juego se creó. Redirigiendo a la sala...');
+
+      if (newGameId) {
+        await joinGame(newGameId);
+        navigate(`/games/${newGameId}`, { state: { game: response.data } });
+      }
+    } catch (error) {
+      console.log('Create Game', error);
     }
+  };
 
-
-    return(
-        <>
-        <JoinGame/>
-        <h1>Crear Juego</h1>
-        <form onSubmit={create_game}>
+  return (
+    <>
+      <JoinGame />
+      <h1>Crear Juego</h1>
+      <form onSubmit={handleSubmit}>
         <div>
           <label htmlFor="NombreJuego">Nombre: </label>
           <input
@@ -59,35 +62,28 @@ function CreateGame(){
             placeholder="requiered"
             required
             value={game.nombre}
-            onChange={(event) => {
-              setGame({...game, nombre: event.target.value});
-            }}
+            onChange={handleChange('nombre')}
           />
-          </div>
-          <br/>
-          
-          <div>
-        <label htmlFor="TokenJuego">Token: </label>
-        <input
-          type="text"
-          id="token"
-          name="token"
-          placeholder="requiered"
-          required
-          value={game.token}
-          onChange={(event) => {
-            setGame({...game,token: event.target.value});
-          }}
-        />
         </div>
-        <button type="submit" value="Submit" >Crear</button>
-        </form>
-        
-        
-        </>
+        <br />
 
-
-    )
-
+        <div>
+          <label htmlFor="TokenJuego">Token: </label>
+          <input
+            type="text"
+            id="token"
+            name="token"
+            placeholder="requiered"
+            required
+            value={game.token}
+            onChange={handleChange('token')}
+          />
+        </div>
+        <button type="submit" value="Submit">
+          Crear
+        </button>
+      </form>
+    </>
+  );
 }
 export default CreateGame;

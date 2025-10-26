@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import "./Contador.css";
+import React from 'react';
+import '../styles/components/Contador.css';
 function Contador({ value1, value2, sumar1, sumar2, restar1, restar2 }) {
   return (
     <>
@@ -21,8 +21,6 @@ function Contador({ value1, value2, sumar1, sumar2, restar1, restar2 }) {
           </div>
           <p>{value2}</p>
         </div>
-
-        
       </div>
     </>
   );

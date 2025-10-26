@@ -1,61 +1,66 @@
+import './styles/App.css';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
 
-import './App.css';
-import { BrowserRouter,Routes,Route, useNavigate } from 'react-router-dom';
-
-
-
-
-import Home from "./components/Home"
+import Home from './components/Home';
 import Dashboard from './components/Dashboard';
-import CreateGame from './components/CreateGame';
 import Game from './components/Game';
 import Board from './components/Board';
-import Header from './components/Header';
-import { GetCurrentPlayer, Logout } from './api/games';
-import {useState,useEffect} from "react";
-import LogIn from './components/auth/Login';
+import { GetCurrentPlayer } from './api/games';
+
 function App() {
+  const storedPlayer = sessionStorage.getItem('current_player');
+  const initialPlayer = storedPlayer ? JSON.parse(storedPlayer) : null;
 
-  const me = sessionStorage.getItem('current_player')
-  const initialMe = me? JSON.parse(me) : (null)
+  const [currentPlayer, setCurrentPlayer] = useState(initialPlayer);
 
- const [current_player, setCurrent_player] = useState(initialMe);
-    
-  useEffect(()=>{
-      //!current_player && current();
-     
-    },[current_player,LogIn,Logout]) 
+  const fetchCurrentPlayer = useCallback(async () => {
+    const res = await GetCurrentPlayer();
+    if (res) {
+      setCurrentPlayer(res);
+    }
+  }, []);
 
-    console.log(current_player)
+  useEffect(() => {
+    if (!currentPlayer) {
+      fetchCurrentPlayer();
+    }
+  }, [currentPlayer, fetchCurrentPlayer]);
 
- const current= async ()=>{
-    const res = await GetCurrentPlayer()
-	 //if(res.error){
-        //console.log("NO");
-        //return;
-	 //}
-	 if(res==null){
-	return;
-	 }else{
-     setCurrent_player(res);
-     
-	 }
-   console.log(current_player);
- }
+  useEffect(() => {
+    if (currentPlayer) {
+      sessionStorage.setItem('current_player', JSON.stringify(currentPlayer));
+    } else {
+      sessionStorage.removeItem('current_player');
+    }
+  }, [currentPlayer]);
+
+  console.log(currentPlayer);
+
   return (
     <>
-    <BrowserRouter>
-    
-    
-    <Routes>
-
-    <Route path={"/"} element={<Home current_player={current_player} current={current} setCurrent_player={setCurrent_player} />}/>
-    <Route path={"/dashboard/*"} element={<Dashboard current_player={current_player} setCurrent_player={setCurrent_player} />}/>
-    <Route path={"games/:id"} element={<Game current_player={current_player} current={current} />}/>
-    <Route path={"games/:id/board"} element={<Board current_player={current_player} current={current}/>}/>
-    
-    </Routes>
-    </BrowserRouter>
+      <BrowserRouter>
+        <Routes>
+          <Route
+            path={'/'}
+            element={
+              <Home
+                current_player={currentPlayer}
+                current={fetchCurrentPlayer}
+                setCurrent_player={setCurrentPlayer}
+              />
+            }
+          />
+          <Route
+            path={'/dashboard/*'}
+            element={
+              <Dashboard current_player={currentPlayer} setCurrent_player={setCurrentPlayer} />
+            }
+          />
+          <Route path={'games/:id'} element={<Game current_player={currentPlayer} />} />
+          <Route path={'games/:id/board'} element={<Board current_player={currentPlayer} />} />
+        </Routes>
+      </BrowserRouter>
     </>
   );
 }
