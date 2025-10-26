@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createConsumer } from '@rails/actioncable';
 import '../styles/components/Board.css';
 import Card from './Card';
 import Contador from './Contador';
@@ -15,7 +14,7 @@ import {
 } from '../api/games';
 
 const HAND_SIZE = 3;
-const CABLE_URL = process.env.REACT_APP_CABLE_URL ?? 'ws://localhost:3001/cable';
+const POLL_INTERVAL = 1000;
 
 const normalizeHand = (cards = []) => {
   const next = [...cards];
@@ -34,6 +33,7 @@ function Board({ current_player }) {
   const [count1, setCount1] = useState(0);
   const [count2, setCount2] = useState(0);
 
+  const pollRef = useRef(null);
   const dropOrderRef = useRef({});
 
   const playerIndex = useMemo(
@@ -53,64 +53,53 @@ function Board({ current_player }) {
 
   const opponents = orderedPlayers.slice(1);
 
-  const syncBoardState = useCallback(
-    (boardData) => {
-      if (!boardData || typeof boardData !== 'object') {
-        return;
-      }
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
 
-      setBoardCards(() => {
-        const next = {};
-
-        players.forEach((player) => {
-          const playerId = player?.id;
-          if (!playerId) {
-            return;
-          }
-
-          const value = boardData[playerId] || boardData[String(playerId)] || [];
-          const list = Array.isArray(value) ? value : [];
-          const normalized = normalizeHand(list);
-
-          next[playerId] = normalized;
-          dropOrderRef.current[playerId] = normalized.filter(Boolean).length + 1;
-        });
-
-        return next;
-      });
-    },
-    [players],
-  );
-
-  const fetchHand = useCallback(async () => {
-    if (!current_player?.id) {
+  const fetchCards = useCallback(async () => {
+    if (!current_player?.id || playerIndex < 0 || !id) {
       return;
     }
 
     try {
-      const handResponse = await GetPlayerCards(current_player.id);
+      const [handResponse, droppedByGame] = await Promise.all([
+        GetPlayerCards(current_player.id),
+        getGameDroppedCards(id),
+      ]);
+
       if (Array.isArray(handResponse)) {
         setHand(normalizeHand(handResponse));
       }
-    } catch (error) {
-      console.log('Fetch hand', error);
-    }
-  }, [current_player?.id]);
 
-  const fetchBoard = useCallback(async () => {
-    if (!id) {
-      return;
-    }
-
-    try {
-      const droppedByGame = await getGameDroppedCards(id);
       if (droppedByGame && typeof droppedByGame === 'object') {
-        syncBoardState(droppedByGame);
+        setBoardCards(() => {
+          const next = {};
+
+          players.forEach((player) => {
+            const playerId = player?.id;
+            if (!playerId) {
+              return;
+            }
+
+            const value = droppedByGame[playerId] || droppedByGame[String(playerId)] || [];
+            const list = Array.isArray(value) ? value : [];
+            const normalized = normalizeHand(list);
+
+            next[playerId] = normalized;
+            dropOrderRef.current[playerId] = normalized.filter(Boolean).length + 1;
+          });
+
+          return next;
+        });
       }
     } catch (error) {
-      console.log('Fetch board', error);
+      console.log('Fetch board state', error);
     }
-  }, [id, syncBoardState]);
+  }, [current_player?.id, id, playerIndex, players]);
 
   const fetchPlayers = useCallback(async () => {
     if (!id) {
@@ -128,40 +117,18 @@ function Board({ current_player }) {
   }, [fetchPlayers]);
 
   useEffect(() => {
-    if (!players.length || !current_player?.id) {
-      return;
+    if (!current_player?.id || playerIndex < 0) {
+      stopPolling();
+      return undefined;
     }
 
-    fetchHand();
-    fetchBoard();
-  }, [players, current_player?.id, fetchHand, fetchBoard]);
-
-  useEffect(() => {
-    if (!id) {
-      return;
-    }
-
-    const consumer = createConsumer(CABLE_URL);
-    const subscription = consumer.subscriptions.create(
-      { channel: 'GameChannel', game_id: id },
-      {
-        received: (message) => {
-          if (message?.type === 'board_update') {
-            if (message.dropped_cards) {
-              syncBoardState(message.dropped_cards);
-            } else {
-              fetchBoard();
-            }
-          }
-        },
-      },
-    );
+    fetchCards();
+    pollRef.current = setInterval(fetchCards, POLL_INTERVAL);
 
     return () => {
-      subscription.unsubscribe();
-      consumer.disconnect();
+      stopPolling();
     };
-  }, [id, fetchBoard, syncBoardState]);
+  }, [current_player?.id, playerIndex, fetchCards, stopPolling]);
 
   const handleDeal = async (slotIndex) => {
     if (!id || !current_player?.id) {
@@ -238,13 +205,13 @@ function Board({ current_player }) {
         next[current_player.id] = normalizeHand();
         return next;
       });
-      await Promise.all([fetchHand(), fetchBoard()]);
+      await fetchCards();
     } catch (error) {
       console.log('Reset cards', error);
     } finally {
       setResetting(false);
     }
-  }, [current_player?.id, fetchBoard, fetchHand, playerIndex, resetting]);
+  }, [current_player?.id, fetchCards, playerIndex, resetting]);
 
   if (!players.length) {
     return <div>Loading</div>;
