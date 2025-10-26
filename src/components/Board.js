@@ -1,384 +1,324 @@
-import React, { useEffect, useState } from "react";
-import "./Board.css";
-import Card from "./Card";
-import Contador from "./Contador";
-import { useLocation, useParams } from "react-router";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createConsumer } from '@rails/actioncable';
+import '../styles/components/Board.css';
+import Card from './Card';
+import Contador from './Contador';
+import BoardCard from './BoardCard';
+import { useParams } from 'react-router-dom';
 import {
   DealCards,
-  getGamePlayers,
-  GetPlayerCards,
-  DeleteCard,
   DropCard,
-  GetDroppedCards,
-} from "../api/games";
-import Board_Card from "./Board_Card";
+  GetPlayerCards,
+  getGameDroppedCards,
+  getGamePlayers,
+  resetPlayerCards,
+} from '../api/games';
 
-function Board({current_player,current}) {
-  const location = useLocation();
+const HAND_SIZE = 3;
+const CABLE_URL = process.env.REACT_APP_CABLE_URL ?? 'ws://localhost:3001/cable';
 
-  const storedCards = localStorage.getItem('cards')
-  const initialCards= storedCards? JSON.parse(storedCards) : ([[],[]])
+const normalizeHand = (cards = []) => {
+  const next = [...cards];
+  while (next.length < HAND_SIZE) {
+    next.push(null);
+  }
+  return next.slice(0, HAND_SIZE);
+};
 
-
-
-  //console.log(location.state.game.id);
-  
-
+function Board({ current_player }) {
   const { id } = useParams();
-  
   const [players, setPlayers] = useState([]);
-
-  const [cards, setCards] = useState(initialCards);
-  const PlayerCards = cards?.slice();
-  const c1 = PlayerCards?.slice();
-  
-  const [cards2, setCards2] = useState([[],[]]);
-  const PlayerCards2 = cards2?.slice();
-  const c2 = PlayerCards2?.slice();
-
- 
-  const [dropOrder, setDropOrder] = useState(1);
-  const [dropOrder2, setDropOrder2] = useState(1);
-
+  const [hand, setHand] = useState(() => normalizeHand());
+  const [boardCards, setBoardCards] = useState({});
+  const [resetting, setResetting] = useState(false);
   const [count1, setCount1] = useState(0);
   const [count2, setCount2] = useState(0);
-  
-  const [playerIndex,setPlayerIndex] = useState(0);
-  
 
-  let interv;
+  const dropOrderRef = useRef({});
 
-  //let playerIndex = players?.length !== 0 ? players?.findIndex((element) => element?.id === current_player?.id) : (0)
+  const playerIndex = useMemo(
+    () => players.findIndex((player) => player?.id === current_player?.id),
+    [players, current_player],
+  );
+
+  const orderedPlayers = useMemo(() => {
+    if (!players.length || playerIndex < 0) {
+      return players;
+    }
+    const current = players[playerIndex];
+    const before = players.slice(0, playerIndex);
+    const after = players.slice(playerIndex + 1);
+    return [current, ...after, ...before];
+  }, [players, playerIndex]);
+
+  const opponents = orderedPlayers.slice(1);
+
+  const syncBoardState = useCallback(
+    (boardData) => {
+      if (!boardData || typeof boardData !== 'object') {
+        return;
+      }
+
+      setBoardCards(() => {
+        const next = {};
+
+        players.forEach((player) => {
+          const playerId = player?.id;
+          if (!playerId) {
+            return;
+          }
+
+          const value = boardData[playerId] || boardData[String(playerId)] || [];
+          const list = Array.isArray(value) ? value : [];
+          const normalized = normalizeHand(list);
+
+          next[playerId] = normalized;
+          dropOrderRef.current[playerId] = normalized.filter(Boolean).length + 1;
+        });
+
+        return next;
+      });
+    },
+    [players],
+  );
+
+  const fetchHand = useCallback(async () => {
+    if (!current_player?.id) {
+      return;
+    }
+
+    try {
+      const handResponse = await GetPlayerCards(current_player.id);
+      if (Array.isArray(handResponse)) {
+        setHand(normalizeHand(handResponse));
+      }
+    } catch (error) {
+      console.log('Fetch hand', error);
+    }
+  }, [current_player?.id]);
+
+  const fetchBoard = useCallback(async () => {
+    if (!id) {
+      return;
+    }
+
+    try {
+      const droppedByGame = await getGameDroppedCards(id);
+      if (droppedByGame && typeof droppedByGame === 'object') {
+        syncBoardState(droppedByGame);
+      }
+    } catch (error) {
+      console.log('Fetch board', error);
+    }
+  }, [id, syncBoardState]);
+
+  const fetchPlayers = useCallback(async () => {
+    if (!id) {
+      return;
+    }
+
+    const res = await getGamePlayers(id);
+    if (Array.isArray(res)) {
+      setPlayers(res);
+    }
+  }, [id]);
 
   useEffect(() => {
-    
-    //!game && show_game(id);
-    //players.length===0 && 
+    fetchPlayers();
+  }, [fetchPlayers]);
 
-    show_players(id);
-    
-    //!current_player && current()
-    //cards.length===0 && show_cards()
-    //localStorage.setItem('cards', JSON.stringify(cards));
-    startWaiting(); 
-    return () => {
-       clearIntervals();
-     };
-        
-  },[]);
-
-  
-
-  console.log(current_player);
-  console.log(players);
-  console.log(cards);
-  console.log(cards2)
-
-  const sumarc1=()=>{
-    setCount1(count1+1)
-  };
-  const sumarc2=()=>{
-    setCount2(count2+1)
-  };
-  const restarc1=()=>{
-    setCount1(count1-1)
-  };
-  const restarc2=()=>{
-    setCount2(count2-1)
-  };
-
-  const show_players = async (id) => {
-    const res = await getGamePlayers(id);
-    if (res?.error) {
-      console.log("NO");
+  useEffect(() => {
+    if (!players.length || !current_player?.id) {
       return;
     }
-    console.log("llego");
-    setPlayers(res);
-    setPlayerIndex(res?.findIndex((element) => element?.id === current_player?.id));
-    console.log(res?.findIndex((element) => element?.id === current_player?.id))
+
+    fetchHand();
+    fetchBoard();
+  }, [players, current_player?.id, fetchHand, fetchBoard]);
+
+  useEffect(() => {
+    if (!id) {
+      return;
+    }
+
+    const consumer = createConsumer(CABLE_URL);
+    const subscription = consumer.subscriptions.create(
+      { channel: 'GameChannel', game_id: id },
+      {
+        received: (message) => {
+          if (message?.type === 'board_update') {
+            if (message.dropped_cards) {
+              syncBoardState(message.dropped_cards);
+            } else {
+              fetchBoard();
+            }
+          }
+        },
+      },
+    );
+
+    return () => {
+      subscription.unsubscribe();
+      consumer.disconnect();
+    };
+  }, [id, fetchBoard, syncBoardState]);
+
+  const handleDeal = async (slotIndex) => {
+    if (!id || !current_player?.id) {
+      return;
+    }
+
+    if (hand.filter(Boolean).length >= HAND_SIZE && hand[slotIndex]) {
+      alert('Ya tiene las 3 cartas');
+      return;
+    }
+
+    const res = await DealCards(id, current_player.id);
+    if (res?.error) {
+      console.log('NO');
+      return;
+    }
+
+    setHand((prev) => {
+      const next = [...prev];
+      next[slotIndex] = res;
+      return normalizeHand(next);
+    });
   };
 
-  function handleBoton(i, player_number, player_id) {
-    if (cards[playerIndex].length <= 3) {
-      darCarta(i, player_number, player_id);
-    } else {  
-      alert("Ya tiene las 3 cartas");
+  const handleDragStart = (event, card) => {
+    if (!card) {
+      return;
     }
+    event.dataTransfer.setData('card', JSON.stringify(card));
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+  };
+
+  const handleDrop = async (event, targetPlayerId, slotIndex) => {
+    event.preventDefault();
+    const rawCard = event.dataTransfer.getData('card');
+    if (!rawCard) {
+      return;
+    }
+
+    const card = JSON.parse(rawCard);
+    const order = dropOrderRef.current[targetPlayerId] ?? 1;
+    dropOrderRef.current[targetPlayerId] = order + 1;
+
+    setBoardCards((prev) => {
+      const next = { ...prev };
+      const playerBoard = [...(next[targetPlayerId] || normalizeHand())];
+      playerBoard[slotIndex] = card;
+      next[targetPlayerId] = playerBoard;
+      return next;
+    });
+
+    setHand((prev) => prev.map((handCard) => (handCard?.id === card.id ? null : handCard)));
+
+    if (card?.id && current_player?.id) {
+      await DropCard(card.id, current_player.id, order);
+    }
+  };
+
+  const handleResetCards = useCallback(async () => {
+    if (!current_player?.id || playerIndex < 0 || resetting) {
+      return;
+    }
+
+    setResetting(true);
+    try {
+      await resetPlayerCards();
+      delete dropOrderRef.current[current_player.id];
+      setHand(normalizeHand());
+      setBoardCards((prev) => {
+        const next = { ...prev };
+        next[current_player.id] = normalizeHand();
+        return next;
+      });
+      await Promise.all([fetchHand(), fetchBoard()]);
+    } catch (error) {
+      console.log('Reset cards', error);
+    } finally {
+      setResetting(false);
+    }
+  }, [current_player?.id, fetchBoard, fetchHand, playerIndex, resetting]);
+
+  if (!players.length) {
+    return <div>Loading</div>;
   }
 
-  const darCarta = async (i, player_number, player_id) => {
-  
-
-    const res = await DealCards(id, player_id);
-    if (res?.error) {
-      console.log("NO");
-      return;
-    }
-    console.log("Se repartió una carta");
-
-    c1[i] = res;
-
-    PlayerCards[playerIndex]?.push(res);
-
-    setCards(PlayerCards);
-    //console.log(cards);
-  };
-  
- 
-  
-  const show_cards = async (player_id,player) => {
-   
-    let card = PlayerCards.slice();
-  
-
-    const res = await GetPlayerCards(player_id);
-    const res2= await GetDroppedCards(player_id);
-
-    
-    
-    PlayerCards[playerIndex] = res;
-    setCards(PlayerCards);
-
-    PlayerCards2[playerIndex]= res2;
-    setCards2(PlayerCards2);
-
-    
-
-    // PlayerCards2[0]=res2;
-    // setCards2(PlayerCards2);
-
-   // PlayerCards2[0]=
-
-
-    //res.forEach(element=>{
-    //PlayerCards[0]?.push(element);
-    // setCards(PlayerCards);
-
-   // });   
-
-    // if (res.error) {
-    //   console.log("NO");
-    //   return;
-    // }
-  };
-
-  const startDrag = (event, item) => {
-
-   let card = JSON.stringify(item);
-   event.dataTransfer.setData("card", card);
-    console.log(card);
-  
-  };
-  const draggingOver = (event) => {
-    
-    event.preventDefault();
-  
-    
-  };
-  const onDrop =  (event,player_number,i,player_id) => { //, player_number, i,item (los otros parametros)
-    
-    
-    let card = JSON.parse(event.dataTransfer.getData("card"));
-    console.log(card);
-
-    let order = 0
-
-    if (player_number === 0){
-      setDropOrder(dropOrder + 1)
-      order = dropOrder
-    }
-
-    if(player_number === 1){
-      setDropOrder2(dropOrder2+1)
-      order = dropOrder2
-    }
-    
-    c2[i] = card; 
-    PlayerCards2[player_number]?.push(card);
-    
-    setCards2(PlayerCards2[player_number]);
-    
-    DropCard(card?.id,player_id,order);
-    
-    //deleteCard(cards[player_number][i]?.id);
-    //c1[i] = {} 
-    //PlayerCards[player_number]?.push(c1[i]);
-    //setCards(PlayerCards)
-    //console.log(cards);
-  };
-
-  const deleteCard = async (id) => {
-    const res = await DeleteCard(id);
-
-    if (res.error) {
-      console.log("NO");
-      return;
-    }
-    console.log("Se elimino la carta");
-  };
-
-  function startWaiting(){
-    clearIntervals()
-    const tmp = setInterval(
-      ()=> show_cards(current_player?.id,current_player),
-      1000
-    )
-    interv = tmp
-}
-
-function clearIntervals(){
-clearInterval(interv)
-interv=undefined
-}
-
-function reset(){
-  
-}
-
-if(players?.length===0){
-  return (
-    <div> Loading </div>
-
-
-  )
-}
+  const currentPlayerBoard = boardCards[current_player?.id] || normalizeHand();
 
   return (
     <>
-      {//players?.map((player) => ())
-       }
-        
-        <div
-          key={current_player?.id}
-          className={"Player " }//+ "otro" + players?.indexOf(player)
-         >
-          {current_player?.username}
-    
-          <> 
-          <table id="my_cards">
+      <div className="Player">
+        {current_player?.username}
+        <table id="my_cards">
+          {[0, 1, 2].map((slot) => (
             <Card
-              card={cards[0]}
-              
-              onCardClick={() =>
-                handleBoton(0,  playerIndex , current_player?.id)
-              }
-              onDragStart={(event) =>
-                startDrag(event, cards[0])
-              }
-              
-            ></Card>
-
-            <Card
-              
-              card={cards[1]}
-              
-              onCardClick={() =>
-                handleBoton(1, playerIndex , current_player?.id)
-              }
-              onDragStart={(event) =>
-                startDrag(event, cards[1])
-                
-              }
-
+              key={`hand-${slot}`}
+              card={hand[slot]}
+              onCardClick={() => handleDeal(slot)}
+              onDragStart={(event) => handleDragStart(event, hand[slot])}
             />
-
-            <Card
-              card ={cards[2]}
-              onCardClick={() =>
-                handleBoton(2, playerIndex , current_player?.id)
-              }
-              onDragStart={(event) =>
-                startDrag(event, cards[2])
-              }
-            />
-          </table>
-          
-          </> 
-          
-          
-          
-
-          
-        </div>
-      
-
-      <div className="board">
-        {players?.map((player) => (
-          <div
-            key={player?.id}
-            className={
-              "BoardPlayer " + "otroBoardPlayer" + players?.indexOf(player)
-            }
-          >
-                <table id="board_cards"
-                //onDragOver={(event) => draggingOver(event)}
-                //onDrop={(event) => onDrop(event, players?.indexOf(player),current_player?.id)
-                >
-            
-                <Board_Card // CAMBIAR A BOARD CARD
-                  
-                  card={cards2[players?.indexOf(player)][0]}
-                  //card0={cards2[players?.indexOf(player)][0]}
-                  //card1= {cards2[players?.indexOf(player)][1]}
-                  //card2= {cards2[players?.indexOf(player)][2]}
-                  
-                 
-                  droppable="true"
-                  onDragOver={(event) => draggingOver(event)}
-                  onDrop={(event) => onDrop(event, players?.indexOf(player),0, current_player?.id)}
-                    
-                    
-                    //(event, players?.indexOf(player), 0, cards[players?.indexOf(player)][0])}
-  
-                 
-                />
-  
-                <Board_Card
-                 
-                 card={cards2[players?.indexOf(player)][1]}
-                  //card0={cards2[players?.indexOf(player)][0]}
-                  //card1= {cards2[players?.indexOf(player)][1]}
-                  //card2= {cards2[players?.indexOf(player)][2]}
-                   //cards2[players?.indexOf(player)][1]
-                 
-                  droppable="true"
-                  onDragOver={(event) => draggingOver(event)}
-                  onDrop={(event) => onDrop(event, players?.indexOf(player),1, current_player?.id)}
-                 
-                />
-  
-                <Board_Card
-                  card={cards2[players?.indexOf(player)][2]}
-                  //card0={cards2[players?.indexOf(player)][0]}
-                  //card1= {cards2[players?.indexOf(player)][1]}
-                  //card2={cards2[players?.indexOf(player)][2]} //cards2[players?.indexOf(player)][2]
-                  
-                  droppable="true"
-                  onDragOver={(event) => draggingOver(event)}
-                  onDrop={(event) => onDrop(event, players?.indexOf(player),2, current_player?.id)}
-                
-                />
-              </table>
-
-          </div>
-        ))}
-
+          ))}
+        </table>
+        <button
+          type="button"
+          className="reset-button"
+          onClick={handleResetCards}
+          disabled={resetting}
+        >
+          {resetting ? 'Reiniciando...' : 'Reiniciar cartas'}
+        </button>
       </div>
 
-      <div className="reset">
+      <div className="board">
+        {opponents.map((player) => {
+          const cardsForPlayer = boardCards[player?.id] || normalizeHand();
+          return (
+            <div key={player?.id} className="BoardPlayer">
+              <span className="board-player-name">{player?.username}</span>
+              <table className="board_cards">
+                {[0, 1, 2].map((slot) => (
+                  <BoardCard key={`${player?.id}-${slot}`} card={cardsForPlayer[slot]} />
+                ))}
+              </table>
+            </div>
+          );
+        })}
+      </div>
 
-        <button ></button>
+      <div className="board-self">
+        <span className="board-player-name board-player-name--self">Mesa</span>
+        <table className="board_cards">
+          {[0, 1, 2].map((slot) => (
+            <BoardCard
+              key={`self-${slot}`}
+              card={currentPlayerBoard[slot]}
+              droppable
+              onDragOver={handleDragOver}
+              onDrop={(event) => handleDrop(event, current_player?.id, slot)}
+            />
+          ))}
+        </table>
       </div>
 
       <div className="contador">
-        <Contador value1={count1} value2={count2} sumar1={sumarc1} sumar2={sumarc2} restar1={restarc1} restar2={restarc2}/>
+        <Contador
+          value1={count1}
+          value2={count2}
+          sumar1={() => setCount1((prev) => prev + 1)}
+          sumar2={() => setCount2((prev) => prev + 1)}
+          restar1={() => setCount1((prev) => prev - 1)}
+          restar2={() => setCount2((prev) => prev - 1)}
+        />
       </div>
-      
-      
-
-      <br />
     </>
   );
 }
+
 export default Board;

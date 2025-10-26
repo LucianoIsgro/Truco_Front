@@ -1,11 +1,9 @@
-
-header{
+header {
   border: 2px solid black;
-  background-color:darkblue;
+  background-color: darkblue;
   height: 40px;
   color: white;
   text-align: center;
-
 }
 header button {
   display: block;
@@ -13,12 +11,9 @@ header button {
   right: 20px;
   top: 7px;
 }
-.logout{
+.logout {
   right: 5;
 }
-
-
-
 
 .App {
   text-align: center;

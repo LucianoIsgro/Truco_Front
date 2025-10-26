@@ -1,44 +1,29 @@
-import React, { useState } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { joinGame } from '../api/games';
 
+function JoinGame() {
+  const navigate = useNavigate();
 
-function JoinGame(){
+  const [game_id, setGame_id] = useState('');
 
-const navigate = useNavigate()
-
-const [game_id,setGame_id]=useState("")
-
-const join_game = (event) => {
-        
-    axios.post("http://localhost:3001/player_games",{
-
-        game_id: game_id,
-      
-    },
-    {
-      headers: {
-        Accept: "*/*"
-      },
-      withCredentials: true
-    }
-        
-    ).then(response => {
-        console.log("Join", response); 
-        navigate("/games/"+ game_id)
-        
-      }).catch(error =>{
-        console.log("Join",error);
-      }) 
+  const handleSubmit = async (event) => {
     event.preventDefault();
-}
 
+    try {
+      const response = await joinGame(game_id);
+      console.log('Join', response);
+      navigate(`/games/${game_id}`);
+    } catch (error) {
+      console.log('Join', error);
+    }
+  };
 
-    return(
-        <>
-         <h1>Unirse a Juego</h1>
-            <form onSubmit={join_game}>
-         <div>
+  return (
+    <>
+      <h1>Unirse a Juego</h1>
+      <form onSubmit={handleSubmit}>
+        <div>
           <label htmlFor="Token_para_jugar">Token: </label>
           <input
             type="text"
@@ -51,13 +36,12 @@ const join_game = (event) => {
               setGame_id(event.target.value);
             }}
           />
-          </div>
-          <button type="submit" value="Submit" >Unirse</button>
-          </form>
-        
-
-        </>  
-    )
-
+        </div>
+        <button type="submit" value="Submit">
+          Unirse
+        </button>
+      </form>
+    </>
+  );
 }
 export default JoinGame;
