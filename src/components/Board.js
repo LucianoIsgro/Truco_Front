@@ -14,7 +14,10 @@ import {
 } from '../api/games';
 
 const HAND_SIZE = 3;
-const POLL_INTERVAL = 1000;
+// Event-driven polling: poll after actions, use exponential backoff when no changes
+const INITIAL_POLL_INTERVAL = 1000;
+const MAX_POLL_INTERVAL = 10000;
+const BACKOFF_MULTIPLIER = 1.5;
 
 const normalizeHand = (cards = []) => {
   const next = [...cards];
@@ -33,7 +36,13 @@ function Board({ current_player }) {
   const [count1, setCount1] = useState(0);
   const [count2, setCount2] = useState(0);
 
+  // Event-driven polling refs
   const pollRef = useRef(null);
+  const pollDelayRef = useRef(INITIAL_POLL_INTERVAL);
+  const noChangeCountRef = useRef(0);
+  const lastHandStringRef = useRef('');
+  const lastBoardStringRef = useRef('');
+  
   const dropOrderRef = useRef({});
 
   const playerIndex = useMemo(
@@ -60,6 +69,12 @@ function Board({ current_player }) {
     }
   }, []);
 
+  // Resets polling to fast interval (called after player actions)
+  const resetPollToFast = useCallback(() => {
+    pollDelayRef.current = INITIAL_POLL_INTERVAL;
+    noChangeCountRef.current = 0;
+  }, []);
+
   const fetchCards = useCallback(async () => {
     if (!current_player?.id || playerIndex < 0 || !id) {
       return;
@@ -72,7 +87,17 @@ function Board({ current_player }) {
       ]);
 
       if (Array.isArray(handResponse)) {
-        setHand(normalizeHand(handResponse));
+        const normalizedHand = normalizeHand(handResponse);
+        const handString = JSON.stringify(normalizedHand);
+        
+        // Check if hand changed
+        if (handString !== lastHandStringRef.current) {
+          setHand(normalizedHand);
+          lastHandStringRef.current = handString;
+          resetPollToFast(); // Reset backoff if change detected
+        } else {
+          noChangeCountRef.current++;
+        }
       }
 
       if (droppedByGame && typeof droppedByGame === 'object') {
@@ -93,13 +118,28 @@ function Board({ current_player }) {
             dropOrderRef.current[playerId] = normalized.filter(Boolean).length + 1;
           });
 
+          const boardString = JSON.stringify(next);
+          if (boardString !== lastBoardStringRef.current) {
+            lastBoardStringRef.current = boardString;
+            resetPollToFast(); // Reset backoff if change detected
+          }
+
           return next;
         });
       }
+
+      // Apply exponential backoff if no changes detected
+      if (noChangeCountRef.current > 0) {
+        pollDelayRef.current = Math.min(
+          INITIAL_POLL_INTERVAL * Math.pow(BACKOFF_MULTIPLIER, noChangeCountRef.current),
+          MAX_POLL_INTERVAL,
+        );
+      }
     } catch (error) {
-      console.log('Fetch board state', error);
+      console.log('Fetch board state error:', error);
+      // On error, keep current polling interval but don't backoff more
     }
-  }, [current_player?.id, id, playerIndex, players]);
+  }, [current_player?.id, id, playerIndex, players, resetPollToFast]);
 
   const fetchPlayers = useCallback(async () => {
     if (!id) {
@@ -122,8 +162,19 @@ function Board({ current_player }) {
       return undefined;
     }
 
+    // Fetch immediately on mount
     fetchCards();
-    pollRef.current = setInterval(fetchCards, POLL_INTERVAL);
+
+    // Set up polling with dynamic interval that increases when no changes detected
+    const setupPolling = () => {
+      stopPolling();
+      pollRef.current = setInterval(() => {
+        fetchCards();
+        // Next poll will use pollDelayRef.current which may have been updated by fetchCards
+      }, pollDelayRef.current);
+    };
+
+    setupPolling();
 
     return () => {
       stopPolling();
@@ -151,6 +202,9 @@ function Board({ current_player }) {
       next[slotIndex] = res;
       return normalizeHand(next);
     });
+
+    // Reset polling to fast interval after action
+    resetPollToFast();
   };
 
   const handleDragStart = (event, card) => {
@@ -188,6 +242,9 @@ function Board({ current_player }) {
     if (card?.id && current_player?.id) {
       await DropCard(card.id, current_player.id, order);
     }
+
+    // Reset polling to fast interval after action
+    resetPollToFast();
   };
 
   const handleResetCards = useCallback(async () => {
@@ -206,12 +263,15 @@ function Board({ current_player }) {
         return next;
       });
       await fetchCards();
+      
+      // Reset polling to fast interval after action
+      resetPollToFast();
     } catch (error) {
-      console.log('Reset cards', error);
+      console.log('Reset cards error:', error);
     } finally {
       setResetting(false);
     }
-  }, [current_player?.id, fetchCards, playerIndex, resetting]);
+  }, [current_player?.id, fetchCards, playerIndex, resetting, resetPollToFast]);
 
   if (!players.length) {
     return <div>Loading</div>;
